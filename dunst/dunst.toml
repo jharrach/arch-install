@@ -1,0 +1,16 @@
+[global]
+follow = keyboard
+width = (300, 900)
+height = (0, 600)
+origin = center
+frame_width = 1
+foreground = "#e6eaea"
+background = "#101719"
+timeout = 0
+font = Monospace 11.25
+[urgency_low]
+frame_color = "#7aa4a1"
+[urgency_normal]
+frame_color = "#7aa4a1"
+[urgency_critical]
+frame_color = "#fda47f"

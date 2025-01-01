@@ -1,0 +1,56 @@
+# reference /usr/share/doc/ncmpcpp/bindings
+
+def_key "k"
+  scroll_up
+
+def_key "K"
+  select_item
+  scroll_up
+
+def_key "j"
+  scroll_down
+
+def_key "J"
+  select_item
+  scroll_down
+
+def_key "page_up"
+  page_up
+
+def_key "ctrl-b"
+  page_up
+
+def_key "page_down"
+  page_down
+
+def_key "ctrl-f"
+  page_down
+def_key "G"
+  move_end
+
+def_key "i"
+  select_item
+
+def_key "D"
+  delete_playlist_items
+
+def_key "D"
+  delete_browser_items
+
+def_key "D"
+  delete_stored_playlist
+
+def_key "-"
+  jump_to_parent_directory
+
+def_command "q" [deferred]
+  quit
+
+def_command "h" [deferred]
+  show_help
+
+def_command "bn" [deferred]
+  next
+
+def_command "bp" [deferred]
+  previous

@@ -1,0 +1,88 @@
+diff --git a/components/datetime.c b/components/datetime.c
+index 5b10daf..c241918 100644
+--- a/components/datetime.c
++++ b/components/datetime.c
+@@ -8,10 +8,11 @@
+ const char *
+ datetime(const char *fmt)
+ {
+-	time_t t;
++	struct timespec current;
+ 
+-	t = time(NULL);
+-	if (!strftime(buf, sizeof(buf), fmt, localtime(&t))) {
++	if (clock_gettime(CLOCK_REALTIME, &current) < 0)
++		die("clock_gettime:");
++	if (!strftime(buf, sizeof(buf), fmt, localtime(&(current.tv_sec)))) {
+ 		warn("strftime: Result string exceeds buffer size");
+ 		return NULL;
+ 	}
+diff --git a/slstatus.c b/slstatus.c
+index fd31313..788b279 100644
+--- a/slstatus.c
++++ b/slstatus.c
+@@ -30,14 +30,6 @@ terminate(const int signo)
+ 		done = 1;
+ }
+ 
+-static void
+-difftimespec(struct timespec *res, struct timespec *a, struct timespec *b)
+-{
+-	res->tv_sec = a->tv_sec - b->tv_sec - (a->tv_nsec < b->tv_nsec);
+-	res->tv_nsec = a->tv_nsec - b->tv_nsec +
+-	               (a->tv_nsec < b->tv_nsec) * 1E9;
+-}
+-
+ static void
+ usage(void)
+ {
+@@ -48,7 +40,7 @@ int
+ main(int argc, char *argv[])
+ {
+ 	struct sigaction act;
+-	struct timespec start, current, diff, intspec, wait;
++	struct timespec current, wait;
+ 	size_t i, len;
+ 	int sflag, ret;
+ 	char status[MAXLEN];
+@@ -82,9 +74,6 @@ main(int argc, char *argv[])
+ 		die("XOpenDisplay: Failed to open display");
+ 
+ 	do {
+-		if (clock_gettime(CLOCK_MONOTONIC, &start) < 0)
+-			die("clock_gettime:");
+-
+ 		status[0] = '\0';
+ 		for (i = len = 0; i < LEN(args); i++) {
+ 			if (!(res = args[i].func(args[i].args)))
+@@ -109,18 +98,20 @@ main(int argc, char *argv[])
+ 		}
+ 
+ 		if (!done) {
+-			if (clock_gettime(CLOCK_MONOTONIC, &current) < 0)
++			if (clock_gettime(CLOCK_REALTIME, &current) < 0)
+ 				die("clock_gettime:");
+-			difftimespec(&diff, &current, &start);
+-
+-			intspec.tv_sec = interval / 1000;
+-			intspec.tv_nsec = (interval % 1000) * 1E6;
+-			difftimespec(&wait, &intspec, &diff);
+ 
+-			if (wait.tv_sec >= 0 &&
+-			    nanosleep(&wait, NULL) < 0 &&
+-			    errno != EINTR)
+-					die("nanosleep:");
++			wait.tv_sec = -(current.tv_sec + 1) % 60;
++			if (wait.tv_sec)
++				wait.tv_sec += 60;
++			if (current.tv_nsec == 0) {
++				wait.tv_sec += 1;
++				wait.tv_nsec = 0;
++			} else {
++				wait.tv_nsec = 1000000000 -current.tv_nsec;
++			}
++			if (nanosleep(&wait, NULL) < 0 && errno != EINTR)
++				die("nanosleep:");
+ 		}
+ 	} while (!done);
+ 
