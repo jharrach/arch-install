@@ -35,6 +35,7 @@ pipewire-jack
 pipewire-pulse
 qpwgraph
 reflector
+signal-desktop
 syncthing
 texinfo
 ttf-jetbrains-mono
