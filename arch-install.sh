@@ -99,7 +99,7 @@ chroot_install() {
 	cat >> /etc/skel/.bash_profile << EOF
 
 if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" = 1 ]; then
-	exec startx
+	exec startx > /dev/null 2>&1
 fi
 EOF
 	systemctl enable NetworkManager
