@@ -40,5 +40,7 @@ fi
 
 dunst -config $HOME/.config/dunst/dunst.toml &
 ibus-daemon --replace --xim --restart --daemonize
-slstatus &
+while true; do
+	xprop -root WM_NAME && exec slstatus
+done &
 exec dwm
