@@ -98,7 +98,7 @@ chroot_install() {
 	hwclock --systohc
 	cat >> /etc/skel/.bash_profile << EOF
 
-if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" = 1 ]; then
+if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" -le 2 ]; then
 	exec startx > /dev/null 2>&1
 fi
 EOF
