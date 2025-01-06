@@ -1,3 +1,7 @@
+/*
+ * interval is no longer used by slstatus.c.
+ * But it is required for compilation (components/netspeeds.c).
+ */
 const unsigned int interval = 1000;
 
 static const char unknown_str[] = "n/a";
