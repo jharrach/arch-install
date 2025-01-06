@@ -53,7 +53,7 @@ static const Layout layouts[] = {
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-#define RLSTAT " && killall -USR1 slstatus && notify-send update"
+#define RLSTAT " && killall --signal USR1 slstatus"
 #define STEP " 10"
 #define RAISEVOLUME "pamixer --increase" STEP RLSTAT
 #define LOWERVOLUME "pamixer --decrease" STEP RLSTAT
