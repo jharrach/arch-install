@@ -1,0 +1,3 @@
+ACTION=="add", SUBSYSTEM=="power_supply", ATTR{type}=="Battery", RUN+="/usr/bin/chmod 0666 $sys$devpath/alarm", GOTO="battery_end"
+ACTION=="change", SUBSYSTEM=="power_supply", ATTR{type}=="Battery", RUN+="/usr/bin/killall --exact slstatus --signal USR1", GOTO="battery_end"
+LABEL="battery_end"
