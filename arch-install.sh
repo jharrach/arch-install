@@ -124,28 +124,39 @@ EOF
 	)
 	(
 		cd /mnt
-		cp xinit/xinitrc /etc/X11/xinit/
-		cp fonts/local.conf /etc/fonts/
-		cp dwm/config.h /usr/local/src/dwm/
-		cp dmenu/config.h /usr/local/src/dmenu/
-		cp slstatus/config.h /usr/local/src/slstatus/
-		cp slstatus/realtime.patch /usr/local/src/slstatus/
-		[ -d /etc/skel/.config/ ] || mkdir /etc/skel/.config
+		mkdir --parents /etc/skel/.config/systemd/user/default.target.wants
 		mkdir /etc/skel/.config/alacritty
 		mkdir /etc/skel/.config/dunst
-		mkdir /etc/skel/.config/ncmpcpp
 		mkdir /etc/skel/.config/mpd
-		mkdir --parents /etc/skel/.config/systemd/user/default.target.wants
+		mkdir /etc/skel/.config/ncmpcpp
 		ln --symbolic /usr/lib/systemd/user/sockets.target.wants/mpd.socket /etc/skel/.config/systemd/user/default.target.wants/mpd.socket
 		cp alacritty/alacritty.toml /etc/skel/.config/alacritty/
 		cp alacritty/terafox.toml /etc/skel/.config/alacritty/
+		cp bin/monbrightness /usr/local/bin/
+		cp dmenu/config.h /usr/local/src/dmenu/
 		cp dunst/dunst.toml /etc/skel/.config/dunst/
-		cp ncmpcpp/bindings /etc/skel/.config/ncmpcpp/
+		cp dwm/config.h /usr/local/src/dwm/
+		cp fonts/local.conf /etc/fonts/
 		cp mpd/mpd.conf /etc/skel/.config/mpd/
+		cp ncmpcpp/bindings /etc/skel/.config/ncmpcpp/
+		cp rules.d/99-battery.rules /etc/udev/rules.d/
+		cp rules.d/99-monitor-backlight.rules /etc/udev/rules.d/
+		cp slstatus/battery.patch /usr/local/src/slstatus/
+		cp slstatus/config.h /usr/local/src/slstatus/
+		cp slstatus/realtime.patch /usr/local/src/slstatus/
+		cp xinit/xinitrc /etc/X11/xinit/
+		cp xorg.conf.d/20-amdgpu.conf /etc/X11/xorg.conf.d/
+		cp xorg.conf.d/30-touchpad.conf /etc/X11/xorg.conf.d/
+		cp xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
 	)
 	(
 		cd /usr/local/src/slstatus
 		git apply realtime.patch
+		git apply battery.patch
+		if [ -n "${battery}" ]; then
+			sed --in-place "/<battery>/s/\/\///" config.h
+			sed --in-place "s/<battery>/${battery##*/}/" config.h
+		fi
 	)
 	(
 		cd /usr/local/src
@@ -257,6 +268,13 @@ fi
 
 ping -c 1 archlinux.org > /dev/null
 
+batteries="$(find /sys/class/power_supply/ -maxdepth 1 'BAT*')"
+if [ "$(echo "${batteries}" | wc --lines)" -gt 1 ]; then
+	print "please select a battery for slstatus:\n"
+	battery="$(echo "${batteries}" | dmenu-cli)"
+else
+	battery="${batteries}"
+fi
 list_drives_with_model
 printf "please select a hard drive:\n" # TODO support multiple
 drive=$(lsblk --filter 'TYPE == "disk"' --nodeps --noheadings --output NAME | dmenu-cli)
@@ -268,6 +286,7 @@ export username
 export password
 export gitusername
 export gituseremail
+export battery
 mount --bind "$(dirname "${0}")"  /mnt/mnt/
 arch-chroot /mnt/ bash /mnt/arch-install.sh --chroot 2>&1 | sed 's/^/>>> /'
 umount /mnt/mnt
