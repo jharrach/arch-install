@@ -19,6 +19,8 @@ libxft
 libxinerama
 linux
 linux-firmware
+lua
+lua-filesystem
 lvm2
 man-db
 man-pages

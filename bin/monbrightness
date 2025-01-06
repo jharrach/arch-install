@@ -1,0 +1,79 @@
+#!/usr/bin/env lua
+local lfs = require 'lfs'
+local parentdir = '/sys/class/backlight/'
+
+function numberFromFile(filepath)
+	local file = io.open(filepath, 'r')
+	if not file then
+		error('could not open file: '..filepath)
+	end
+	local number = file:read('n+')
+	file:close()
+	return number
+end
+
+function numberToFile(filepath, number)
+	local file = io.open(filepath, 'w')
+	if not file then
+		error('could not open file: '..filepath)
+	end
+	file:write(number)
+	file:close()
+end
+
+if #arg ~= 1 then
+	error('wrong number of arguments')
+end
+
+local sign, number, suffix = arg[1]:match('([+-]?)(%d+)(%D*.*)')
+
+if suffix:len() > 0 and suffix ~= '%' then
+	error('wrong format: '..suffix)
+end
+
+local isEmpty = true
+
+for file in lfs.dir(parentdir) do
+	if file == '.' or file == '..' then
+		goto continue
+	end
+	local dirabs = parentdir..file
+	local attr = lfs.attributes(dirabs)
+	if attr.mode ~= 'directory' then
+		goto continue
+	end
+	isEmpty = false
+	local absbn = numberFromFile(dirabs..'/brightness')
+	local maxbn = numberFromFile(dirabs..'/max_brightness')
+	local newbn
+	if suffix:len() == 0 then
+		if sign == '+' then
+			newbn = absbn + number
+		elseif sign == '-' then
+			newbn = absbn - number
+		else
+			newbn = tonumber(number)
+		end
+	else
+		local relbn = (absbn * 100) / maxbn
+		if sign == '+' then
+			newbn = relbn + number
+		elseif sign == '-' then
+			newbn = relbn - number
+		else
+			newbn = tonumber(number)
+		end
+		newbn = newbn * (maxbn / 100)
+	end
+	if newbn < 0 then
+		newbn = 0
+	elseif newbn > maxbn then
+		newbn = maxbn
+	end
+	numberToFile(dirabs..'/brightness', math.floor(newbn + 0.5))
+	::continue::
+end
+
+if isEmpty then
+	error('no backlight found in '..parentdir)
+end
