@@ -65,6 +65,8 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, NULL };
 static const char *termcmd[]  = { "alacritty", NULL };
 static const char *browsercmd[] = { "librewolf", NULL };
+static const char *monbrightnessdowncmd[] = { "monbrightness", "-10%", NULL };
+static const char *monbrightnessupcmd[] = { "monbrightness", "+10%", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -75,6 +77,8 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_AudioLowerVolume, spawn, SHCMD(LOWERVOLUME) },
 	{ 0,                            XF86XK_AudioMute, spawn, SHCMD(MUTE) },
 	{ 0,                            XF86XK_AudioMicMute, spawn, SHCMD(MICMUTE) },
+	{ 0,                            XF86XK_MonBrightnessDown, spawn, {.v = monbrightnessdowncmd } },
+	{ 0,                            XF86XK_MonBrightnessUp, spawn, {.v = monbrightnessupcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
