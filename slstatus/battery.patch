@@ -1,0 +1,126 @@
+diff --git a/components/battery.c b/components/battery.c
+index 1c753f9..61de65f 100644
+--- a/components/battery.c
++++ b/components/battery.c
+@@ -11,6 +11,7 @@
+  */
+ 	#include <limits.h>
+ 	#include <stdint.h>
++	#include <sys/wait.h>
+ 	#include <unistd.h>
+ 
+ 	#define POWER_SUPPLY_CAPACITY "/sys/class/power_supply/%s/capacity"
+@@ -19,6 +20,9 @@
+ 	#define POWER_SUPPLY_ENERGY   "/sys/class/power_supply/%s/energy_now"
+ 	#define POWER_SUPPLY_CURRENT  "/sys/class/power_supply/%s/current_now"
+ 	#define POWER_SUPPLY_POWER    "/sys/class/power_supply/%s/power_now"
++	#define POWER_SUPPLY_ALARM    "/sys/class/power_supply/%s/alarm"
++
++	extern char **environ;
+ 
+ 	static const char *
+ 	pick(const char *bat, const char *f1, const char *f2, char *path,
+@@ -35,18 +39,78 @@
+ 		return NULL;
+ 	}
+ 
++	void
++	show_notification(char *title, char *body) {
++		pid_t cpid = fork();
++
++		if (cpid < 0) {
++			warn("fork:");
++			return;
++		}
++		if (cpid == 0) {
++			char cmd[] = "/usr/bin/notify-send";
++			char *argv[] = {
++				cmd,
++				"--urgency",
++				"critical",
++				title,
++				body,
++				NULL,
++			};
++			execve(cmd, argv, environ);
++			die("execve:");
++		}
++		waitpid(cpid, NULL, 0);
++	}
++
+ 	const char *
+ 	battery_perc(const char *bat)
+ 	{
+-		int cap_perc;
++		struct {
++			const char *path;
++			int value;
++		} attr[] = {
++			{ POWER_SUPPLY_CAPACITY, 0},
++			{ POWER_SUPPLY_ENERGY, 0},
++			{ POWER_SUPPLY_ALARM, 0},
++		};
+ 		char path[PATH_MAX];
++		static int show = -1;
++		const char *state = battery_state(bat);
+ 
+-		if (esnprintf(path, sizeof(path), POWER_SUPPLY_CAPACITY, bat) < 0)
++		if (state == NULL)
+ 			return NULL;
+-		if (pscanf(path, "%d", &cap_perc) != 1)
+-			return NULL;
+-
+-		return bprintf("%d", cap_perc);
++		int discharging = state[0] == '-';
++		for (size_t i = 0; i < (discharging ? LEN(attr) : 1); ++i) {
++			if (esnprintf(path, sizeof(path), attr[i].path, bat) < 0)
++				return NULL;
++			if (pscanf(path, "%d", &(attr[i].value)) != 1)
++				return NULL;
++		}
++		if (!discharging) {
++			show = 1;
++			return bprintf("%d", attr[0].value);
++		}
++		if (show == -1) {
++			show = 1;
++			if (attr[1].value > attr[2].value)
++				return bprintf("%d", attr[0].value);
++			char perc[5];
++			snprintf(perc, sizeof(perc), "%d%%", attr[0].value);
++			show_notification("low battery", perc);
++			return bprintf("%d", attr[0].value);
++		}
++		if (attr[1].value != attr[2].value) {
++			show = 1;
++			return bprintf("%d", attr[0].value);
++		}
++		if (show) {
++			show = 0;
++			char perc[5];
++			snprintf(perc, sizeof(perc), "%d%%", attr[0].value);
++			show_notification("low battery", perc);
++		}
++		return bprintf("%d", attr[0].value);
+ 	}
+ 
+ 	const char *
+@@ -81,7 +145,8 @@
+ 	{
+ 		uintmax_t charge_now, current_now, m, h;
+ 		double timeleft;
+-		char path[PATH_MAX], state[12];
++		char path[PATH_MAX];
++		static char state[12];
+ 
+ 		if (esnprintf(path, sizeof(path), POWER_SUPPLY_STATUS, bat) < 0)
+ 			return NULL;
+@@ -109,7 +174,7 @@
+ 			return bprintf("%juh %jum", h, m);
+ 		}
+ 
+-		return "";
++		return state;
+ 	}
+ #elif defined(__OpenBSD__)
+ 	#include <fcntl.h>
