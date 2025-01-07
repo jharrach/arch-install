@@ -268,7 +268,7 @@ fi
 
 ping -c 1 archlinux.org > /dev/null
 
-batteries="$(find /sys/class/power_supply/ -maxdepth 1 'BAT*')"
+batteries="$(find /sys/class/power_supply/ -maxdepth 1 -name 'BAT*')"
 if [ "$(echo "${batteries}" | wc --lines)" -gt 1 ]; then
 	print "please select a battery for slstatus:\n"
 	battery="$(echo "${batteries}" | dmenu-cli)"
