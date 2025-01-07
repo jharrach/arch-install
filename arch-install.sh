@@ -102,6 +102,9 @@ if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" -le 2 ]; then
 	exec startx > /dev/null 2>&1
 fi
 EOF
+	cat >> /etc/skel/.bashrc << EOF
+export DOCKER_HOST="unix://\${XDG_RUNTIME_DIR}/docker.sock"
+EOF
 	systemctl enable NetworkManager
 	systemctl enable systemd-timesyncd
 	local lang="en_US.UTF-8"
@@ -111,6 +114,15 @@ EOF
 	local jobs=$(nproc)
 	sed --in-place "s/#MAKEFLAGS=.*/MAKEFLAGS=\"--jobs ${jobs}\"/g" /etc/makepkg.conf
 	sed --in-place '/^OPTIONS=/s/ debug/ !debug/g' /etc/makepkg.conf
+	(
+		cd /tmp
+		sudo --user nobody git clone https://aur.archlinux.org/docker-rootless-extras
+		cd docker-rootless-extras
+		. PKGBUILD
+		pacman --sync --noconfirm --needed --asdeps "${depends[@]}"
+		sudo --user nobody makepkg
+		pacman --upgrade --noconfirm *.pkg.tar.zst
+	)
 	(
 		cd /usr/bin
 		ln --symbolic --force clang cc
@@ -124,12 +136,16 @@ EOF
 	)
 	(
 		cd /mnt
-		mkdir --parents /etc/skel/.config/systemd/user/default.target.wants
+		local readonly systemd_path="systemd/user/sockets.target.wants"
+		local readonly docker_path="${systemd_path}/docker.socket"
+		local readonly mpd_path="${systemd_path}/mpd.socket"
+		mkdir --parents "/etc/skel/.config/${systemd_path}"
+		ln --symbolic "/usr/lib/${docker_path}" "/etc/skel/.config/${docker_path}"
+		ln --symbolic "/usr/lib/${mpd_path}" "/etc/skel/.config/${mpd_path}"
 		mkdir /etc/skel/.config/alacritty
 		mkdir /etc/skel/.config/dunst
 		mkdir /etc/skel/.config/mpd
 		mkdir /etc/skel/.config/ncmpcpp
-		ln --symbolic /usr/lib/systemd/user/sockets.target.wants/mpd.socket /etc/skel/.config/systemd/user/default.target.wants/mpd.socket
 		cp alacritty/alacritty.toml /etc/skel/.config/alacritty/
 		cp alacritty/terafox.toml /etc/skel/.config/alacritty/
 		cp bin/monbrightness /usr/local/bin/
